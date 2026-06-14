@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giải Cứu Thực Phẩm Dư Thừa | Thống kê</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            eco: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669', 700: '#047857' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body data-page="admin">
+
+  <!-- Navbar -->
+  <nav class="nav-glass fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <a href="index.html" class="flex items-center gap-2">
+          <span class="text-2xl">🌱</span>
+          <span class="font-bold text-emerald-700 text-lg hidden sm:block">Giải Cứu Thực Phẩm</span>
+        </a>
+        <div class="flex items-center gap-1 sm:gap-4">
+          <a href="index.html" class="nav-link text-gray-600 hover:text-emerald-700 font-medium px-3 py-2 text-sm" data-page="index">🏠 Trang chủ</a>
+          <a href="store.html" class="nav-link text-gray-600 hover:text-emerald-700 font-medium px-3 py-2 text-sm" data-page="store">🏪 Cửa hàng</a>
+          <a href="admin.html" class="nav-link active text-emerald-700 font-semibold px-3 py-2 text-sm" data-page="admin">📊 Thống kê</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <section class="hero-gradient pt-24 pb-8 px-4">
+    <div class="max-w-7xl mx-auto text-center text-white">
+      <h1 class="text-3xl sm:text-4xl font-extrabold mb-3">📊 Bảng Điều Khiển</h1>
+      <p class="text-emerald-100 text-lg max-w-xl mx-auto">
+        Theo dõi tác động tích cực — bữa ăn cứu được, tiền tiết kiệm và CO₂ giảm phát thải
+      </p>
+    </div>
+  </section>
+
+  <main class="max-w-7xl mx-auto px-4 py-8">
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="dashboard-card">
+        <div class="flex items-center gap-4">
+          <div class="dashboard-card-icon icon-meals">🍽️</div>
+          <div>
+            <div class="dashboard-card-value" id="dashMeals">0</div>
+            <div class="dashboard-card-label">Bữa ăn đã cứu</div>
+          </div>
+        </div>
+      </div>
+      <div class="dashboard-card">
+        <div class="flex items-center gap-4">
+          <div class="dashboard-card-icon icon-money">💰</div>
+          <div>
+            <div class="dashboard-card-value text-lg sm:text-2xl" id="dashMoney">0 ₫</div>
+            <div class="dashboard-card-label">Tiền tiết kiệm</div>
+          </div>
+        </div>
+      </div>
+      <div class="dashboard-card">
+        <div class="flex items-center gap-4">
+          <div class="dashboard-card-icon icon-co2">🌍</div>
+          <div>
+            <div class="dashboard-card-value" id="dashCo2">0 kg</div>
+            <div class="dashboard-card-label">CO₂ giảm phát thải</div>
+          </div>
+        </div>
+      </div>
+      <div class="dashboard-card">
+        <div class="flex items-center gap-4">
+          <div class="dashboard-card-icon icon-food">⚖️</div>
+          <div>
+            <div class="dashboard-card-value" id="dashFood">0 kg</div>
+            <div class="dashboard-card-label">Thực phẩm cứu được</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- Weekly Chart -->
+      <div class="lg:col-span-2 dashboard-card">
+        <h2 class="text-xl font-bold text-gray-800 mb-2">📈 Xu hướng tuần này</h2>
+        <p class="text-sm text-gray-500 mb-6">Biểu đồ cột: bữa ăn cứu được · Đường: CO₂ giảm (1kg thực phẩm = 2.5kg CO₂)</p>
+        <div class="chart-container">
+          <canvas id="weeklyChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="dashboard-card">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">🕐 Hoạt động gần đây</h2>
+        <div id="activityFeed">
+          <!-- Activity items rendered by app.js -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Impact Banner -->
+    <div class="mt-8 dashboard-card bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-bold text-emerald-800">💚 Tác động môi trường</h3>
+          <p class="text-emerald-700 text-sm mt-1">
+            Mỗi kg thực phẩm được cứu giúp giảm <strong>2.5 kg CO₂</strong> phát thải —
+            tương đương trồng thêm cây xanh cho hành tinh!
+          </p>
+        </div>
+        <a href="index.html" class="btn-rescue whitespace-nowrap">
+          🌱 Cứu thực phẩm ngay
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-emerald-800 text-emerald-100 py-8 mt-8">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <p class="font-semibold text-lg mb-2">🌱 Giải Cứu Thực Phẩm Dư Thừa</p>
+      <p class="text-sm text-emerald-200 mb-4">Cùng nhau giảm lãng phí thực phẩm · Bảo vệ hành tinh xanh</p>
+      <p class="text-xs text-emerald-300 flex items-center justify-center gap-1 flex-wrap">
+        Bảo vệ thức ăn thừa © 2026 by Nông Chử Nguyên Khôi is licensed under CC BY 4.0
+        <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="CC" style="max-width: 1em; max-height: 1em;">
+        <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="BY" style="max-width: 1em; max-height: 1em;">
+      </p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>

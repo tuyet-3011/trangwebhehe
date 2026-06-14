@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giải Cứu Thực Phẩm Dư Thừa | Cửa hàng</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            eco: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669', 700: '#047857' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body data-page="store">
+
+  <!-- Navbar -->
+  <nav class="nav-glass fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <a href="index.html" class="flex items-center gap-2">
+          <span class="text-2xl">🌱</span>
+          <span class="font-bold text-emerald-700 text-lg hidden sm:block">Giải Cứu Thực Phẩm</span>
+        </a>
+        <div class="flex items-center gap-1 sm:gap-4">
+          <a href="index.html" class="nav-link text-gray-600 hover:text-emerald-700 font-medium px-3 py-2 text-sm" data-page="index">🏠 Trang chủ</a>
+          <a href="store.html" class="nav-link active text-emerald-700 font-semibold px-3 py-2 text-sm" data-page="store">🏪 Cửa hàng</a>
+          <a href="admin.html" class="nav-link text-gray-600 hover:text-emerald-700 font-medium px-3 py-2 text-sm" data-page="admin">📊 Thống kê</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <section class="hero-gradient pt-24 pb-8 px-4">
+    <div class="max-w-7xl mx-auto text-center text-white">
+      <h1 class="text-3xl sm:text-4xl font-extrabold mb-3">🏪 Đăng Thực Phẩm Dư</h1>
+      <p class="text-emerald-100 text-lg max-w-xl mx-auto">
+        Cửa hàng đăng món ăn dư thừa — giúp người dùng cứu thực phẩm thay vì lãng phí
+      </p>
+    </div>
+  </section>
+
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+      <!-- Form Section -->
+      <div class="dashboard-card">
+        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+          📝 Thông tin món ăn
+        </h2>
+        <form id="storeForm">
+          <div class="form-group">
+            <label class="form-label" for="inputStoreName">Tên cửa hàng *</label>
+            <input type="text" id="inputStoreName" class="form-input" placeholder="VD: Bánh Mì Hà Nội" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inputFoodName">Tên món ăn *</label>
+            <input type="text" id="inputFoodName" class="form-input" placeholder="VD: Bánh mì thịt nướng" required>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="form-label" for="inputQuantity">Khối lượng (kg) *</label>
+              <input type="number" id="inputQuantity" class="form-input" step="0.1" min="0.1" value="1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputExpiry">Hết hạn sau (giờ) *</label>
+              <input type="number" id="inputExpiry" class="form-input" min="1" max="48" value="4" required>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="form-label" for="inputOriginalPrice">Giá gốc (VNĐ) *</label>
+              <input type="number" id="inputOriginalPrice" class="form-input" min="0" step="1000" placeholder="35000" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputRescuePrice">Giá cứu (VNĐ)</label>
+              <input type="number" id="inputRescuePrice" class="form-input" min="0" step="1000" placeholder="15000">
+            </div>
+          </div>
+          <div class="form-group flex items-center gap-3">
+            <input type="checkbox" id="inputFree" class="w-5 h-5 accent-emerald-600 rounded">
+            <label for="inputFree" class="form-label mb-0 cursor-pointer">🎁 Miễn phí (cho tặng)</label>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inputCity">Thành phố</label>
+            <input type="text" id="inputCity" class="form-input" placeholder="VD: Hà Nội, TP. HCM">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="form-label" for="inputLat">Vĩ độ (Lat)</label>
+              <input type="text" id="inputLat" class="form-input" placeholder="Click bản đồ" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inputLng">Kinh độ (Lng)</label>
+              <input type="text" id="inputLng" class="form-input" placeholder="Click bản đồ" readonly>
+            </div>
+          </div>
+          <p class="text-sm text-gray-500 mb-4">💡 Nhấn vào bản đồ bên cạnh để chọn vị trí cửa hàng</p>
+          <button type="submit" class="btn-rescue w-full text-lg py-3">
+            ✅ Đăng món cứu thực phẩm
+          </button>
+        </form>
+      </div>
+
+      <!-- Map Section -->
+      <div>
+        <h2 class="text-xl font-bold text-gray-800 mb-4">🗺️ Chọn vị trí trên bản đồ</h2>
+        <div id="storeMap" class="min-h-[350px] mb-6"></div>
+
+        <h2 class="text-xl font-bold text-gray-800 mb-4">📋 Danh sách đã đăng</h2>
+        <div id="storeListings" class="food-list-scroll max-h-[400px] overflow-y-auto">
+          <!-- Listings rendered by app.js -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-emerald-800 text-emerald-100 py-8 mt-8">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <p class="font-semibold text-lg mb-2">🌱 Giải Cứu Thực Phẩm Dư Thừa</p>
+      <p class="text-sm text-emerald-200 mb-4">Cùng nhau giảm lãng phí thực phẩm · Bảo vệ hành tinh xanh</p>
+      <p class="text-xs text-emerald-300 flex items-center justify-center gap-1 flex-wrap">
+        Bảo vệ thức ăn thừa © 2026 by Nông Chử Nguyên Khôi is licensed under CC BY 4.0
+        <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="CC" style="max-width: 1em; max-height: 1em;">
+        <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="BY" style="max-width: 1em; max-height: 1em;">
+      </p>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>

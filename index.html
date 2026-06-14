@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giải Cứu Thực Phẩm Dư Thừa | Trang chủ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            eco: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669', 700: '#047857' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body data-page="index">
+
+  <!-- Navbar -->
+  <nav class="nav-glass fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <a href="index.html" class="flex items-center gap-2">
+          <span class="text-2xl">🌱</span>
+          <span class="font-bold text-emerald-700 text-lg hidden sm:block">Giải Cứu Thực Phẩm</span>
+        </a>
+        <div class="flex items-center gap-1 sm:gap-4">
+          <a href="index.html" class="nav-link active text-emerald-700 font-semibold px-3 py-2 text-sm" data-page="index">🏠 Trang chủ</a>
+          <a href="store.html" class="nav-link text-gray-600 hover:text-emerald-700 font-medium px-3 py-2 text-sm" data-page="store">🏪 Cửa hàng</a>
+          <a href="admin.html" class="nav-link text-gray-600 hover:text-emerald-700 font-medium px-3 py-2 text-sm" data-page="admin">📊 Thống kê</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero-gradient pt-24 pb-12 px-4">
+    <div class="max-w-7xl mx-auto text-center text-white">
+      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-4 leading-tight">
+        Giải Cứu Thực Phẩm Dư Thừa
+      </h1>
+      <p class="text-emerald-100 text-lg sm:text-xl max-w-2xl mx-auto mb-8">
+        Kết nối cửa hàng và người tiêu dùng — cứu thực phẩm, tiết kiệm tiền, bảo vệ môi trường 🌍
+      </p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <div class="stat-pill rounded-2xl px-6 py-3">
+          <div class="text-2xl font-bold" id="statAvailable">0</div>
+          <div class="text-sm text-emerald-100">Món còn hàng</div>
+        </div>
+        <div class="stat-pill rounded-2xl px-6 py-3">
+          <div class="text-2xl font-bold" id="statMeals">0</div>
+          <div class="text-sm text-emerald-100">Bữa ăn đã cứu</div>
+        </div>
+        <div class="stat-pill rounded-2xl px-6 py-3">
+          <div class="text-2xl font-bold" id="statCo2">0 kg</div>
+          <div class="text-sm text-emerald-100">CO₂ giảm phát thải</div>
+        </div>
+        <div class="stat-pill rounded-2xl px-6 py-3">
+          <div class="text-2xl font-bold" id="statStores">0</div>
+          <div class="text-sm text-emerald-100">Cửa hàng tham gia</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex flex-col lg:flex-row gap-6 min-h-[600px]">
+
+      <!-- Left: Food List (40%) -->
+      <div class="w-full lg:w-2/5 flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-gray-800">🍽️ Thực phẩm gần bạn</h2>
+          <button id="btnFilterAvailable" class="btn-outline-eco text-sm py-2 px-3">👁️ Xem tất cả</button>
+        </div>
+        <div id="foodList" class="food-list-scroll flex-1 overflow-y-auto pr-2 max-h-[70vh] lg:max-h-none">
+          <!-- Food cards rendered by app.js -->
+        </div>
+      </div>
+
+      <!-- Right: Map (60%) -->
+      <div class="w-full lg:w-3/5 flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-gray-800">🗺️ Bản đồ thực phẩm</h2>
+          <button id="btnLocate" class="btn-rescue text-sm py-2 px-4">
+            📍 Tìm vị trí của mô
+          </button>
+        </div>
+        <div id="map" class="flex-1 min-h-[400px] lg:min-h-[600px]"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-emerald-800 text-emerald-100 py-8 mt-8">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <p class="font-semibold text-lg mb-2">🌱 Giải Cứu Thực Phẩm Dư Thừa</p>
+      <p class="text-sm text-emerald-200 mb-4">Cùng nhau giảm lãng phí thực phẩm · Bảo vệ hành tinh xanh</p>
+      <p class="text-xs text-emerald-300 flex items-center justify-center gap-1 flex-wrap">
+        Bảo vệ thức ăn thừa © 2026 by Nông Chử Nguyên Khôi is licensed under CC BY 4.0
+        <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="CC" style="max-width: 1em; max-height: 1em;">
+        <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="BY" style="max-width: 1em; max-height: 1em;">
+      </p>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
