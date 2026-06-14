@@ -386,6 +386,29 @@ function createFoodMarkerIcon(emoji = '🍱', isUser = false) {
 
 /** Tạo nội dung popup của marker */
 function createPopupContent(listing) {
+  const expiryTime = listing.createdAt + (listing.expiryHours * 60 * 60 * 1000);
+  const now = Date.now();
+  const remainingMs = expiryTime - now;
+  const remainingHours = remainingMs / (60 * 60 * 1000);
+
+  let warningBadge = '';
+  let remainingText = '';
+
+  if (remainingHours <= 0) {
+    warningBadge = '<div class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold inline-block mb-1">⚠️ Đã quá hạn</div>';
+    remainingText = 'Đã quá hạn';
+  } else {
+    const expiresToday = new Date(expiryTime).toDateString() === new Date().toDateString();
+    if (expiresToday) {
+      warningBadge = '<div class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold inline-block mb-1">⏰ Hết hạn hôm nay</div>';
+    }
+    if (remainingHours >= 24) {
+      remainingText = `Còn ${Math.round(remainingHours / 24)} ngày`;
+    } else {
+      remainingText = `Còn ${remainingHours.toFixed(1)}h`;
+    }
+  }
+
   const priceText = listing.isFree
     ? '<span class="text-amber-600 font-bold">🎁 MIỄN PHÍ</span>'
     : `<span class="popup-price">${formatCurrency(listing.rescuePrice)}</span>
@@ -393,13 +416,16 @@ function createPopupContent(listing) {
 
   const claimBtn = listing.claimed
     ? '<button class="popup-btn" disabled style="background:#9ca3af">Đã được cứu</button>'
-    : `<button class="popup-btn" onclick="handlePopupClaim('${listing.id}')">🌱 Cứu ngay</button>`;
+    : (remainingHours <= 0
+      ? '<button class="popup-btn" disabled style="background:#ef4444">Đã hết hạn</button>'
+      : `<button class="popup-btn" onclick="handlePopupClaim('${listing.id}')">🌱 Cứu ngay</button>`);
 
   return `
     <div class="popup-food">
       <div class="store-name">🏪 ${listing.storeName}</div>
       <h3>${listing.foodName}</h3>
-      <p class="text-sm text-gray-500 mb-2">${listing.quantity} kg · Hết hạn ${listing.expiryHours}h</p>
+      <p class="text-sm text-gray-500 mb-1">${listing.quantity} kg · ${remainingText}</p>
+      ${warningBadge ? `<div class="mb-2">${warningBadge}</div>` : ''}
       <div>${priceText}</div>
       ${claimBtn}
     </div>
@@ -557,13 +583,40 @@ async function renderFoodCards(containerId, options = {}) {
   }
 
   container.innerHTML = filtered.map(listing => {
+    const expiryTime = listing.createdAt + (listing.expiryHours * 60 * 60 * 1000);
+    const now = Date.now();
+    const remainingMs = expiryTime - now;
+    const remainingHours = remainingMs / (60 * 60 * 1000);
+
+    let expiryStatusBadge = '';
+    let cardStatusClass = '';
+    let remainingText = '';
+
+    if (remainingHours <= 0) {
+      expiryStatusBadge = '<span class="food-card-badge bg-red-100 text-red-700 border border-red-200 font-bold ml-1">⚠️ Đã quá hạn</span>';
+      cardStatusClass = ' border-red-300 bg-red-50/10 opacity-70';
+      remainingText = 'Đã quá hạn sử dụng';
+    } else {
+      const expiresToday = new Date(expiryTime).toDateString() === new Date().toDateString();
+      if (expiresToday) {
+        expiryStatusBadge = '<span class="food-card-badge bg-amber-100 text-amber-800 border border-amber-200 font-bold ml-1">⏰ Hết hạn hôm nay</span>';
+      }
+      
+      if (remainingHours <= 3) {
+        expiryStatusBadge += '<span class="food-card-badge badge-expiring ml-1">⏰ Sắp hết hạn</span>';
+      }
+
+      if (remainingHours >= 24) {
+        remainingText = `Còn ${Math.round(remainingHours / 24)} ngày`;
+      } else {
+        remainingText = `Còn ${remainingHours.toFixed(1)}h`;
+      }
+    }
+
     const claimedClass = listing.claimed ? ' claimed' : '';
     const badge = listing.isFree
       ? '<span class="food-card-badge badge-free">🎁 Miễn phí</span>'
       : `<span class="food-card-badge badge-discount">💚 Giảm ${Math.round((1 - listing.rescuePrice / listing.originalPrice) * 100)}%</span>`;
-    const expiringBadge = listing.expiryHours <= 3
-      ? '<span class="food-card-badge badge-expiring ml-1">⏰ Sắp hết hạn</span>'
-      : '';
 
     const priceHtml = listing.isFree
       ? '<span class="food-card-price">Miễn phí</span>'
@@ -572,19 +625,21 @@ async function renderFoodCards(containerId, options = {}) {
 
     const btnHtml = listing.claimed
       ? '<button class="btn-rescue" disabled>✅ Đã cứu</button>'
-      : `<button class="btn-rescue" onclick="handleCardClaim('${listing.id}')">🌱 Cứu ngay</button>`;
+      : (remainingHours <= 0
+        ? '<button class="btn-rescue" disabled style="background:#ef4444">❌ Đã hết hạn</button>'
+        : `<button class="btn-rescue" onclick="handleCardClaim('${listing.id}')">🌱 Cứu ngay</button>`);
 
     return `
-      <div class="food-card${claimedClass} p-4 mb-4 animate-fade-in" data-id="${listing.id}">
+      <div class="food-card${claimedClass}${cardStatusClass} p-4 mb-4 animate-fade-in" data-id="${listing.id}">
         <div class="flex justify-between items-start mb-2">
           <div>
             <p class="text-xs font-semibold text-emerald-600">${listing.storeName}</p>
             <h3 class="font-bold text-gray-800 text-lg">${listing.foodName}</h3>
           </div>
-          <div class="flex flex-wrap gap-1 justify-end">${badge}${expiringBadge}</div>
+          <div class="flex flex-wrap gap-1 justify-end">${badge}${expiryStatusBadge}</div>
         </div>
         <p class="text-sm text-gray-500 mb-3">
-          📍 ${listing.city || 'Việt Nam'} · ${listing.quantity} kg · Còn ${listing.expiryHours}h
+          📍 ${listing.city || 'Việt Nam'} · ${listing.quantity} kg · <span class="${remainingHours <= 0 ? 'text-red-600 font-semibold' : (remainingHours <= 3 ? 'text-amber-600 font-semibold' : '')}">${remainingText}</span>
         </p>
         <div class="flex justify-between items-center">
           <div>${priceHtml}</div>
