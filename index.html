@@ -75,6 +75,31 @@
 
       <!-- Left: Food List (40%) -->
       <div class="w-full lg:w-2/5 flex flex-col">
+        <!-- Hướng dẫn Đặt giải cứu -->
+        <div class="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 rounded-2xl p-5 mb-4 shadow-sm">
+          <h3 class="text-md font-bold text-emerald-800 flex items-center gap-1.5 mb-2">
+            🌱 “Đặt giải cứu” là gì?
+          </h3>
+          <p class="text-xs text-emerald-700 leading-relaxed mb-2">
+            Khi bạn bấm nút <strong>“Đặt giải cứu”</strong>, hệ thống sẽ giữ món ăn này cho bạn. Món ăn sẽ lập tức chuyển sang trạng thái <em>“Đã được cứu”</em> để tránh người khác đặt trùng.
+          </p>
+          <p class="text-xs text-emerald-700 leading-relaxed">
+            Vui lòng đến cửa hàng nhận trong thời gian còn hạn. Mỗi món ăn được giải cứu giúp giảm lãng phí, tiết kiệm chi phí và bảo vệ môi trường!
+          </p>
+        </div>
+
+        <!-- Quy trình Kiểm soát An toàn Thực phẩm -->
+        <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-5 mb-6 shadow-sm">
+          <h3 class="text-md font-bold text-amber-800 flex items-center gap-1.5 mb-2">
+            🛡️ Quy trình Kiểm soát An toàn Thực phẩm
+          </h3>
+          <ul class="list-disc pl-4 text-xs text-amber-800 space-y-1.5 leading-relaxed">
+            <li><strong>Cửa hàng:</strong> Chỉ đăng thực phẩm sạch, an toàn, được đóng gói cẩn thận và cam kết bảo quản nhiệt độ chuẩn cho đến khi bàn giao.</li>
+            <li><strong>Người nhận:</strong> Vui lòng tự kiểm tra kỹ cảm quan thực phẩm (mùi vị, màu sắc, tình trạng bao bì) trước khi nhận và tiêu dùng.</li>
+            <li><strong>Sử dụng ngay:</strong> Nên sử dụng thực phẩm giải cứu càng sớm càng tốt để bảo đảm chất lượng vệ sinh tốt nhất.</li>
+          </ul>
+        </div>
+
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-800">🍽️ Thực phẩm gần bạn</h2>
           <button id="btnFilterAvailable" class="btn-outline-eco text-sm py-2 px-3">👁️ Xem tất cả</button>
@@ -89,7 +114,7 @@
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-800">🗺️ Bản đồ thực phẩm</h2>
           <button id="btnLocate" class="btn-rescue text-sm py-2 px-4">
-            📍 Tìm vị trí của tôi
+            📍 Tìm vị trí của mô
           </button>
         </div>
         <div id="map" class="flex-1 min-h-[400px] lg:min-h-[600px]"></div>

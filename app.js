@@ -35,7 +35,11 @@ function mapListingFromDb(dbItem) {
     lng: parseFloat(dbItem.lng),
     city: dbItem.city,
     claimed: dbItem.claimed,
-    createdAt: new Date(dbItem.created_at).getTime()
+    createdAt: new Date(dbItem.created_at).getTime(),
+    claimerName: dbItem.claimer_name,
+    claimerPhone: dbItem.claimer_phone,
+    claimerNote: dbItem.claimer_note,
+    safetyCommit: dbItem.safety_commit
   };
 }
 
@@ -52,7 +56,11 @@ function mapListingToDb(item) {
     lat: parseFloat(item.lat),
     lng: parseFloat(item.lng),
     city: item.city || '',
-    claimed: !!item.claimed
+    claimed: !!item.claimed,
+    claimer_name: item.claimerName || null,
+    claimer_phone: item.claimerPhone || null,
+    claimer_note: item.claimerNote || null,
+    safety_commit: item.safetyCommit !== undefined ? !!item.safetyCommit : true
   };
 }
 
@@ -135,6 +143,9 @@ async function updateListing(id, data) {
   if (data.lng !== undefined) dbUpdates.lng = parseFloat(data.lng);
   if (data.city !== undefined) dbUpdates.city = data.city;
   if (data.claimed !== undefined) dbUpdates.claimed = !!data.claimed;
+  if (data.claimerName !== undefined) dbUpdates.claimer_name = data.claimerName;
+  if (data.claimerPhone !== undefined) dbUpdates.claimer_phone = data.claimerPhone;
+  if (data.claimerNote !== undefined) dbUpdates.claimer_note = data.claimerNote;
 
   const { data: updated, error } = await supabaseClient
     .from('listings')
@@ -297,7 +308,7 @@ async function addActivity(type, message) {
 }
 
 /** Cứu thực phẩm - Đánh dấu và ghi log */
-async function claimFood(id) {
+async function claimFood(id, claimerName, claimerPhone, claimerNote) {
   const listing = await getListingById(id);
   if (!listing) {
     showToast('Không tìm thấy món ăn!', 'error');
@@ -308,14 +319,28 @@ async function claimFood(id) {
     return false;
   }
 
-  const updated = await updateListing(id, { claimed: true });
+  const updated = await updateListing(id, { 
+    claimed: true,
+    claimerName: claimerName,
+    claimerPhone: claimerPhone,
+    claimerNote: claimerNote
+  });
   if (!updated) {
     showToast('Có lỗi xảy ra khi cứu thực phẩm!', 'error');
     return false;
   }
 
-  await addActivity('claim', `Đã cứu "${listing.foodName}" từ ${listing.storeName}`);
-  showToast(`🎉 Cứu thành công "${listing.foodName}"!`, 'success');
+  // Che bớt số điện thoại (Ví dụ: 0987654321 -> 09xxxx4321)
+  let maskedPhone = '';
+  if (claimerPhone && claimerPhone.length >= 4) {
+    maskedPhone = claimerPhone.substring(0, 2) + 'xxxx' + claimerPhone.substring(claimerPhone.length - 4);
+  } else {
+    maskedPhone = 'xxxx';
+  }
+
+  await addActivity('claim', `Bạn ${claimerName} đã đặt giải cứu món "${listing.foodName}" từ ${listing.storeName}. SĐT: ${maskedPhone}`);
+  
+  showToast(`🎉 Đặt giải cứu thành công!\n\nMón ăn này đã được giữ cho bạn. Vui lòng đến cửa hàng trong thời gian còn hạn để nhận thực phẩm.\n\nHành động của bạn đã giúp giảm lãng phí thực phẩm, tiết kiệm chi phí và giảm phát thải CO₂ ra môi trường.`, 'success');
   return true;
 }
 
@@ -418,7 +443,7 @@ function createPopupContent(listing) {
     ? '<button class="popup-btn" disabled style="background:#9ca3af">Đã được cứu</button>'
     : (remainingHours <= 0
       ? '<button class="popup-btn" disabled style="background:#ef4444">Đã hết hạn</button>'
-      : `<button class="popup-btn" onclick="handlePopupClaim('${listing.id}')">🌱 Cứu ngay</button>`);
+      : `<button class="popup-btn" onclick="handlePopupClaim('${listing.id}')">🌱 Đặt giải cứu</button>`);
 
   return `
     <div class="popup-food">
@@ -432,12 +457,108 @@ function createPopupContent(listing) {
   `;
 }
 
+/** Hàm mở hộp thoại xác nhận đặt giải cứu thực phẩm */
+function openClaimModal(listing, onConfirm) {
+  const existing = document.getElementById('claimConfirmModal');
+  if (existing) existing.remove();
+
+  const expiryTime = listing.createdAt + (listing.expiryHours * 60 * 60 * 1000);
+  const now = Date.now();
+  const remainingMs = expiryTime - now;
+  const remainingHours = Math.max(0, remainingMs / (60 * 60 * 1000));
+  let remainingText = '';
+  if (remainingHours >= 24) {
+    remainingText = `${Math.round(remainingHours / 24)} ngày`;
+  } else {
+    remainingText = `${remainingHours.toFixed(1)} giờ`;
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'claimConfirmModal';
+  modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in';
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative border border-emerald-100 animate-scale-up">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 text-emerald-700">
+        🌱 Xác nhận đặt giải cứu thực phẩm
+      </h2>
+      
+      <div class="bg-emerald-50/50 p-4 rounded-xl mb-6 text-sm text-gray-700 border border-emerald-100/50">
+        <p class="mb-1"><strong>Món ăn:</strong> <span class="text-emerald-800 font-bold">${listing.foodName}</span></p>
+        <p class="mb-1"><strong>Cửa hàng:</strong> ${listing.storeName}</p>
+        <p><strong>Thời gian còn sử dụng:</strong> <span class="text-amber-700 font-semibold">${remainingText}</span></p>
+      </div>
+
+      <p class="text-xs text-gray-500 mb-4">
+        Vui lòng nhập thông tin để cửa hàng biết ai sẽ đến nhận món.
+      </p>
+
+      <form id="claimModalForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-600 uppercase mb-1" for="modalClaimerName">Tên người nhận *</label>
+          <input type="text" id="modalClaimerName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm transition" placeholder="VD: Nguyễn Văn A" required>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 uppercase mb-1" for="modalClaimerPhone">Số điện thoại liên hệ *</label>
+          <input type="tel" id="modalClaimerPhone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm transition" placeholder="VD: 0987654321" pattern="[0-9]{9,11}" title="Vui lòng nhập số điện thoại hợp lệ (9 đến 11 chữ số)" required>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 uppercase mb-1" for="modalClaimerNote">Ghi chú</label>
+          <textarea id="modalClaimerNote" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm transition" placeholder="Ghi chú thêm cho cửa hàng (nếu có)"></textarea>
+        </div>
+
+        <p class="text-[11px] text-gray-500 leading-relaxed bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+          <strong>Lưu ý:</strong> Chỉ nhận thực phẩm còn sử dụng được. Người nhận cần đến cửa hàng trong thời gian còn hạn. Sau khi xác nhận, món ăn sẽ được giữ cho bạn và chuyển sang trạng thái "Đã được cứu".
+        </p>
+
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="btnCancelClaim" class="flex-1 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold rounded-xl text-sm transition">
+            Hủy bỏ
+          </button>
+          <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow-sm">
+            Xác nhận đặt
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Focus name field
+  document.getElementById('modalClaimerName').focus();
+
+  // Cancel handler
+  document.getElementById('btnCancelClaim').addEventListener('click', () => {
+    modal.remove();
+  });
+
+  // Click outside to close
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+
+  // Submit handler
+  document.getElementById('claimModalForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const claimerName = document.getElementById('modalClaimerName').value.trim();
+    const claimerPhone = document.getElementById('modalClaimerPhone').value.trim();
+    const claimerNote = document.getElementById('modalClaimerNote').value.trim();
+
+    onConfirm(claimerName, claimerPhone, claimerNote);
+    modal.remove();
+  });
+}
+
 /** Xử lý click cứu thực phẩm từ popup bản đồ */
 async function handlePopupClaim(id) {
-  const success = await claimFood(id);
-  if (success) {
-    await refreshCurrentPage();
-  }
+  const listing = await getListingById(id);
+  if (!listing) return;
+  openClaimModal(listing, async (claimerName, claimerPhone, claimerNote) => {
+    const success = await claimFood(id, claimerName, claimerPhone, claimerNote);
+    if (success) {
+      await refreshCurrentPage();
+    }
+  });
 }
 
 /** Xóa toàn bộ marker khỏi bản đồ */
@@ -627,7 +748,7 @@ async function renderFoodCards(containerId, options = {}) {
       ? '<button class="btn-rescue" disabled>✅ Đã cứu</button>'
       : (remainingHours <= 0
         ? '<button class="btn-rescue" disabled style="background:#ef4444">❌ Đã hết hạn</button>'
-        : `<button class="btn-rescue" onclick="handleCardClaim('${listing.id}')">🌱 Cứu ngay</button>`);
+        : `<button class="btn-rescue" onclick="handleCardClaim('${listing.id}')">🌱 Đặt giải cứu</button>`);
 
     return `
       <div class="food-card${claimedClass}${cardStatusClass} p-4 mb-4 animate-fade-in" data-id="${listing.id}">
@@ -652,10 +773,14 @@ async function renderFoodCards(containerId, options = {}) {
 
 /** Xử lý click cứu thực phẩm từ thẻ danh sách */
 async function handleCardClaim(id) {
-  const success = await claimFood(id);
-  if (success) {
-    await refreshCurrentPage();
-  }
+  const listing = await getListingById(id);
+  if (!listing) return;
+  openClaimModal(listing, async (claimerName, claimerPhone, claimerNote) => {
+    const success = await claimFood(id, claimerName, claimerPhone, claimerNote);
+    if (success) {
+      await refreshCurrentPage();
+    }
+  });
 }
 
 /** Cập nhật số liệu Hero Stats ở Trang chủ */
@@ -763,7 +888,8 @@ async function initStorePage() {
         expiryHours: document.getElementById('inputExpiry').value,
         lat,
         lng,
-        city: document.getElementById('inputCity').value.trim()
+        city: document.getElementById('inputCity').value.trim(),
+        safetyCommit: true
       });
 
       if (created) {
