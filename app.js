@@ -7,7 +7,109 @@ const SUPABASE_URL = 'https://vxbspdlvieiytmltjaqy.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4YnNwZGx2aWVpeXRtbHRqYXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MTQ3OTQsImV4cCI6MjA5Njk5MDc5NH0.934_tDKj7MqrAbTy6N-INRuXAsKvScP0aYTezK7tfgA';
 
 // Khởi tạo client Supabase
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.supabaseClient = supabaseClient;
+
+// ==========================================
+// AUTHENTICATION (Hệ thống Tài khoản)
+// ==========================================
+
+// Đăng nhập bằng Email
+async function loginWithEmail(email, password) {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    showToast('Đăng nhập thất bại: ' + error.message, 'error');
+    return null;
+  }
+  return data;
+}
+
+// Đăng ký bằng Email
+async function signUpWithEmail(email, password) {
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) {
+    showToast('Đăng ký thất bại: ' + error.message, 'error');
+    return null;
+  }
+  return data;
+}
+
+// Đăng nhập bằng Google
+async function loginWithGoogle() {
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/index.html')
+    }
+  });
+  if (error) showToast('Lỗi Google Auth: ' + error.message, 'error');
+}
+
+// Đăng xuất
+async function signOut() {
+  const { error } = await supabaseClient.auth.signOut();
+  if (error) {
+    showToast('Lỗi đăng xuất: ' + error.message, 'error');
+  } else {
+    showToast('Đã đăng xuất tài khoản!', 'success');
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+  }
+}
+
+// Render trạng thái User lên Navbar
+function renderUserNavbar(user) {
+  const container = document.getElementById('authNavbarContainer');
+  if (!container) return;
+
+  if (user) {
+    const avatarUrl = user.user_metadata?.avatar_url || 'https://www.svgrepo.com/show/382106/male-avatar-boy-portrait-vector-svg-2.svg';
+    const displayName = user.user_metadata?.full_name || user.email.split('@')[0];
+
+    container.innerHTML = `
+      <div class="flex items-center gap-2">
+        <img src="${avatarUrl}" alt="Avatar" class="w-8 h-8 rounded-full border border-emerald-500 shadow-sm object-cover">
+        <span class="text-xs font-semibold text-emerald-800 hidden md:inline max-w-[100px] truncate" title="${displayName}">${displayName}</span>
+        <button onclick="signOut()" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 font-bold px-2.5 py-1.5 rounded-lg transition">
+          Đăng xuất
+        </button>
+      </div>
+    `;
+  } else {
+    container.innerHTML = `
+      <a href="login.html" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg transition shadow-sm">
+        Đăng nhập
+      </a>
+    `;
+  }
+}
+
+// Khởi chạy lắng nghe trạng thái đăng nhập
+function initAuth() {
+  // Lấy session ngay lập tức đề phòng onAuthStateChange không phát sự kiện lúc khởi tạo
+  supabaseClient.auth.getSession().then(({ data: { session } }) => {
+    const user = session ? session.user : null;
+    renderUserNavbar(user);
+  }).catch(err => {
+    console.error("Lỗi lấy session ban đầu:", err);
+    renderUserNavbar(null);
+  });
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    const user = session ? session.user : null;
+    renderUserNavbar(user);
+
+    // Kiểm soát truy cập trang cửa hàng
+    const page = document.body.dataset.page;
+    if (page === 'store' && !user) {
+      showToast('⚠️ Vui lòng đăng nhập trước khi sử dụng tính năng cửa hàng!', 'warning');
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 1500);
+    }
+  });
+}
 
 const CO2_PER_KG = 2.5;
 
@@ -39,7 +141,8 @@ function mapListingFromDb(dbItem) {
     claimerName: dbItem.claimer_name,
     claimerPhone: dbItem.claimer_phone,
     claimerNote: dbItem.claimer_note,
-    safetyCommit: dbItem.safety_commit
+    safetyCommit: dbItem.safety_commit,
+    creator: dbItem.creator
   };
 }
 
@@ -60,7 +163,8 @@ function mapListingToDb(item) {
     claimer_name: item.claimerName || null,
     claimer_phone: item.claimerPhone || null,
     claimer_note: item.claimerNote || null,
-    safety_commit: item.safetyCommit !== undefined ? !!item.safetyCommit : true
+    safety_commit: item.safetyCommit !== undefined ? !!item.safetyCommit : true,
+    creator: item.creator || null
   };
 }
 
@@ -113,6 +217,10 @@ async function getListingById(id) {
 
 /** Thêm listing mới */
 async function createListing(data) {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (user) {
+    data.creator = user.email;
+  }
   const dbItem = mapListingToDb(data);
   const { data: inserted, error } = await supabaseClient
     .from('listings')
@@ -458,9 +566,13 @@ function createPopupContent(listing) {
 }
 
 /** Hàm mở hộp thoại xác nhận đặt giải cứu thực phẩm */
-function openClaimModal(listing, onConfirm) {
+async function openClaimModal(listing, onConfirm) {
   const existing = document.getElementById('claimConfirmModal');
   if (existing) existing.remove();
+
+  // Lấy tên mặc định từ tài khoản đăng nhập (nếu có)
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  const defaultName = user ? (user.user_metadata?.full_name || '') : '';
 
   const expiryTime = listing.createdAt + (listing.expiryHours * 60 * 60 * 1000);
   const now = Date.now();
@@ -495,7 +607,7 @@ function openClaimModal(listing, onConfirm) {
       <form id="claimModalForm" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-gray-600 uppercase mb-1" for="modalClaimerName">Tên người nhận *</label>
-          <input type="text" id="modalClaimerName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm transition" placeholder="VD: Nguyễn Văn A" required>
+          <input type="text" id="modalClaimerName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm transition" placeholder="VD: Nguyễn Văn A" value="${defaultName}" required>
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-600 uppercase mb-1" for="modalClaimerPhone">Số điện thoại liên hệ *</label>
@@ -551,9 +663,18 @@ function openClaimModal(listing, onConfirm) {
 
 /** Xử lý click cứu thực phẩm từ popup bản đồ */
 async function handlePopupClaim(id) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    showToast('⚠️ Vui lòng đăng nhập trước khi thực hiện đặt giải cứu!', 'warning');
+    setTimeout(() => {
+      window.location.href = 'login.html';
+    }, 1500);
+    return;
+  }
+
   const listing = await getListingById(id);
   if (!listing) return;
-  openClaimModal(listing, async (claimerName, claimerPhone, claimerNote) => {
+  await openClaimModal(listing, async (claimerName, claimerPhone, claimerNote) => {
     const success = await claimFood(id, claimerName, claimerPhone, claimerNote);
     if (success) {
       await refreshCurrentPage();
@@ -688,6 +809,9 @@ async function renderFoodCards(containerId, options = {}) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const currentUserEmail = session ? session.user.email : null;
+
   const listings = await getAllListings();
   const showClaimed = options.showClaimed !== false;
   const filtered = showClaimed ? listings : listings.filter(l => !l.claimed);
@@ -750,6 +874,19 @@ async function renderFoodCards(containerId, options = {}) {
         ? '<button class="btn-rescue" disabled style="background:#ef4444">❌ Đã hết hạn</button>'
         : `<button class="btn-rescue" onclick="handleCardClaim('${listing.id}')">🌱 Đặt giải cứu</button>`);
 
+    const isOwner = currentUserEmail && listing.creator === currentUserEmail;
+    let claimerInfoHtml = '';
+    if (isOwner && listing.claimed) {
+      claimerInfoHtml = `
+        <div class="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-600 bg-emerald-50/50 p-2.5 rounded-xl">
+          <p class="font-semibold text-emerald-800 mb-1">📋 Thông tin đặt giải cứu:</p>
+          <p><strong>Người nhận:</strong> ${listing.claimerName || 'Không rõ'}</p>
+          <p><strong>SĐT:</strong> ${listing.claimerPhone || 'Không rõ'}</p>
+          ${listing.claimerNote ? `<p><strong>Ghi chú:</strong> ${listing.claimerNote}</p>` : ''}
+        </div>
+      `;
+    }
+
     return `
       <div class="food-card${claimedClass}${cardStatusClass} p-4 mb-4 animate-fade-in" data-id="${listing.id}">
         <div class="flex justify-between items-start mb-2">
@@ -766,16 +903,27 @@ async function renderFoodCards(containerId, options = {}) {
           <div>${priceHtml}</div>
           ${btnHtml}
         </div>
+        ${claimerInfoHtml}
       </div>
     `;
   }).join('');
 }
 
+
 /** Xử lý click cứu thực phẩm từ thẻ danh sách */
 async function handleCardClaim(id) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    showToast('⚠️ Vui lòng đăng nhập trước khi thực hiện đặt giải cứu!', 'warning');
+    setTimeout(() => {
+      window.location.href = 'login.html';
+    }, 1500);
+    return;
+  }
+
   const listing = await getListingById(id);
   if (!listing) return;
-  openClaimModal(listing, async (claimerName, claimerPhone, claimerNote) => {
+  await openClaimModal(listing, async (claimerName, claimerPhone, claimerNote) => {
     const success = await claimFood(id, claimerName, claimerPhone, claimerNote);
     if (success) {
       await refreshCurrentPage();
@@ -1031,6 +1179,7 @@ async function initAdminPage() {
 
 // Khởi chạy ứng dụng dựa trên thuộc tính data-page của thẻ body
 document.addEventListener('DOMContentLoaded', async function onDOMReady() {
+  initAuth();
   const page = document.body.dataset.page;
   if (page === 'index') await initIndexPage();
   else if (page === 'store') await initStorePage();

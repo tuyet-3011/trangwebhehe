@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giải Cứu Thực Phẩm Dư Thừa | Đăng nhập</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="logo.png" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            eco: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669', 700: '#047857' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="flex items-center justify-center p-4">
+
+  <!-- Main Container -->
+  <div id="loginCard" class="w-full max-w-md bg-white/80 backdrop-blur-md border border-emerald-100 rounded-3xl shadow-xl p-8 animate-fade-in my-8">
+    
+    <!-- Area for Normal Authentication -->
+    <div id="normalAuthArea">
+      <!-- Logo & Brand -->
+      <div class="text-center mb-6">
+        <div class="flex justify-center items-center gap-2 mb-2">
+          <img src="logo.png" alt="Logo" class="w-12 h-12 object-contain animate-bounce">
+        </div>
+        <h1 class="text-2xl font-bold text-emerald-800">Giải Cứu Thực Phẩm</h1>
+        <p class="text-sm text-emerald-600">Đăng nhập tài khoản để đặt hoặc đăng cứu thực phẩm</p>
+      </div>
+
+      <!-- Toggle Tabs -->
+      <div class="flex bg-emerald-50 p-1.5 rounded-2xl mb-6">
+        <button id="tabLogin" class="flex-1 py-2 text-sm font-semibold rounded-xl text-emerald-700 bg-white shadow-sm transition" onclick="switchTab('login')">
+          Đăng nhập
+        </button>
+        <button id="tabRegister" class="flex-1 py-2 text-sm font-semibold rounded-xl text-gray-500 hover:text-emerald-700 transition" onclick="switchTab('register')">
+          Đăng ký
+        </button>
+      </div>
+
+      <!-- OAuth (Google Login) -->
+      <div class="mb-6">
+        <button id="btnGoogleLogin" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition shadow-sm hover:shadow-md">
+          <img src="https://www.svgrepo.com/show/355037/google.svg" class="w-5 h-5" alt="Google">
+          Đăng nhập bằng Google
+        </button>
+      </div>
+
+      <div class="flex items-center my-4">
+        <div class="flex-grow border-t border-gray-200"></div>
+        <span class="px-3 text-xs text-gray-400 uppercase font-bold">hoặc</span>
+        <div class="flex-grow border-t border-gray-200"></div>
+      </div>
+
+      <!-- Email Form -->
+      <form id="authForm" class="space-y-4">
+        <div class="form-group">
+          <label class="form-label text-xs uppercase font-bold text-gray-500 mb-1" for="authEmail">Email</label>
+          <input type="email" id="authEmail" class="form-input text-sm" placeholder="VD: email@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <div class="flex justify-between items-center mb-1">
+            <label class="form-label text-xs uppercase font-bold text-gray-500 mb-0" for="authPassword">Mật khẩu</label>
+            <a href="#" id="btnForgotPassword" class="text-xs text-emerald-600 hover:underline" onclick="handleForgotPassword(event)">Quên mật khẩu?</a>
+          </div>
+          <input type="password" id="authPassword" class="form-input text-sm" placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)" required minlength="6">
+        </div>
+
+        <button type="submit" id="btnSubmitForm" class="btn-rescue w-full text-md py-3 rounded-xl shadow-md font-semibold transition">
+          Đăng nhập
+        </button>
+      </form>
+    </div>
+
+    <!-- Area for Reset Password (hidden by default) -->
+    <div id="resetAuthArea" class="hidden">
+      <div class="text-center mb-6">
+        <div class="flex justify-center items-center gap-2 mb-2">
+          <img src="logo.png" alt="Logo" class="w-12 h-12 object-contain">
+        </div>
+        <h1 class="text-2xl font-bold text-emerald-800">Đặt Lại Mật Khẩu</h1>
+        <p class="text-sm text-emerald-600">Vui lòng nhập mật khẩu mới cho tài khoản của bạn</p>
+      </div>
+
+      <form id="resetPasswordForm" class="space-y-4">
+        <div class="form-group">
+          <label class="form-label text-xs uppercase font-bold text-gray-500 mb-1" for="newPasswordInput">Mật khẩu mới</label>
+          <input type="password" id="newPasswordInput" class="form-input text-sm" placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)" required minlength="6">
+        </div>
+
+        <button type="submit" class="btn-rescue w-full text-md py-3 rounded-xl shadow-md font-semibold transition">
+          Xác nhận đổi mật khẩu
+        </button>
+      </form>
+    </div>
+
+    <!-- Go Back Link -->
+    <div class="text-center mt-6">
+      <a href="index.html" class="text-xs text-emerald-600 hover:underline">🏠 Trở về Trang chủ</a>
+    </div>
+
+  </div>
+
+  <!-- Supabase CDN and script -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+  <script>
+    let currentMode = 'login'; // 'login' hoặc 'register'
+
+    function switchTab(mode) {
+      currentMode = mode;
+      const tabLogin = document.getElementById('tabLogin');
+      const tabRegister = document.getElementById('tabRegister');
+      const btnSubmit = document.getElementById('btnSubmitForm');
+      const btnGoogle = document.getElementById('btnGoogleLogin');
+      const btnForgot = document.getElementById('btnForgotPassword');
+      
+      if (mode === 'login') {
+        tabLogin.className = 'flex-1 py-2 text-sm font-semibold rounded-xl text-emerald-700 bg-white shadow-sm transition';
+        tabRegister.className = 'flex-grow py-2 text-sm font-semibold rounded-xl text-gray-500 hover:text-emerald-700 transition';
+        btnSubmit.textContent = 'Đăng nhập';
+        btnForgot.classList.remove('hidden');
+        btnGoogle.innerHTML = `
+          <img src="https://www.svgrepo.com/show/355037/google.svg" class="w-5 h-5" alt="Google">
+          Đăng nhập bằng Google
+        `;
+      } else {
+        tabRegister.className = 'flex-1 py-2 text-sm font-semibold rounded-xl text-emerald-700 bg-white shadow-sm transition';
+        tabLogin.className = 'flex-grow py-2 text-sm font-semibold rounded-xl text-gray-500 hover:text-emerald-700 transition';
+        btnSubmit.textContent = 'Đăng ký tài khoản';
+        btnForgot.classList.add('hidden');
+        btnGoogle.innerHTML = `
+          <img src="https://www.svgrepo.com/show/355037/google.svg" class="w-5 h-5" alt="Google">
+          Đăng ký nhanh bằng Google
+        `;
+      }
+    }
+
+    // Xử lý nhấp vào "Quên mật khẩu" – mở modal nhập email để gửi reset link
+    async function handleForgotPassword(e) {
+      e.preventDefault();
+      // Tạo modal nếu chưa có
+      const existing = document.getElementById('forgotPasswordModal');
+      if (existing) existing.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'forgotPasswordModal';
+      modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in';
+      modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative border border-emerald-100 animate-scale-up">
+          <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 text-emerald-700">
+            🔐 Đặt lại mật khẩu
+          </h2>
+          <p class="text-sm text-gray-600 mb-4">Nhập địa chỉ email tài khoản của bạn. Hệ thống sẽ gửi link đặt lại mật khẩu tới email.</p>
+          <form id="forgotPwdForm" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-600 uppercase mb-1" for="forgotEmail">Email</label>
+              <input type="email" id="forgotEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm transition" placeholder="VD: email@example.com" required>
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button type="button" id="btnCancelForgot" class="flex-1 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold rounded-xl text-sm transition">
+                Hủy bỏ
+              </button>
+              <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow-sm">
+                Gửi link reset
+              </button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      // Cancel handler
+      document.getElementById('btnCancelForgot').addEventListener('click', () => modal.remove());
+      // Close when clicking outside
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+      // Submit handler
+      document.getElementById('forgotPwdForm').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const email = document.getElementById('forgotEmail').value.trim();
+        console.log('Attempting password reset for:', email);
+        if (!email) {
+          showToast('⚠️ Vui lòng nhập email!', 'warning');
+          return;
+        }
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: 'https://khoi-giaicuuthucphamthua.netlify.app/login'
+        });
+        console.log('Supabase reset response error:', error);
+        if (error) {
+          showToast('Lỗi gửi email: ' + error.message, 'error');
+        } else {
+          showToast('✉️ Link đặt lại mật khẩu đã được gửi đến email của bạn!', 'success');
+        }
+        modal.remove();
+      });
+    }
+
+    // Xử lý submit form đăng nhập/đăng ký
+    document.getElementById('authForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+
+      if (currentMode === 'login') {
+        const success = await loginWithEmail(email, password);
+        if (success) {
+          showToast('🎉 Đăng nhập thành công!', 'success');
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 1000);
+        }
+      } else {
+        const success = await signUpWithEmail(email, password);
+        if (success) {
+          showToast('✉️ Đăng ký thành công! Vui lòng kiểm tra hộp thư email để xác nhận tài khoản.', 'info');
+        }
+      }
+    });
+
+    // Xử lý submit đặt lại mật khẩu mới
+    document.getElementById('resetPasswordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newPassword = document.getElementById('newPasswordInput').value;
+      const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+      if (error) {
+        showToast('Lỗi cập nhật mật khẩu: ' + error.message, 'error');
+      } else {
+        showToast('🎉 Đặt lại mật khẩu mới thành công!', 'success');
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 1500);
+      }
+    });
+
+    // Xử lý login Google
+    document.getElementById('btnGoogleLogin').addEventListener('click', async () => {
+      await loginWithGoogle();
+    });
+
+    // Kiểm tra trạng thái tải trang
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Kiểm tra token khôi phục mật khẩu và session
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      if (error) console.error('Supabase getSession error:', error);
+
+      // Nếu URL chứa token khôi phục mật khẩu, hiển thị giao diện đặt lại
+      if (window.location.hash.includes('type=recovery') || window.location.hash.includes('access_token')) {
+        document.getElementById('normalAuthArea').classList.add('hidden');
+        document.getElementById('resetAuthArea').classList.remove('hidden');
+        // Session đã được khởi tạo; người dùng có thể đổi mật khẩu
+        return;
+      }
+
+      // Nếu đã đăng nhập, chuyển hướng về trang chủ
+      if (session) {
+        window.location.href = 'index.html';
+      }
+    });
+  </script>
+</body>
+</html>
